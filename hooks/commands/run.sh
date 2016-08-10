@@ -59,7 +59,8 @@ try_image_restore_from_docker_repository() {
 
     # TODO: Fix this el-dodgo method
     local escaped_tag_for_sed=$(echo "$tag" | sed -e 's/[\/&]/\\&/g')
-    plugin_prompt_and_must_run sed -i.orig "s/build: \./image: $escaped_tag_for_sed/" "$(docker_compose_config_file)"
+    buildkite-run "printf \"version: '2'\nservices:\n  $COMPOSE_SERVICE_NAME:\n    image: $tag\" > docker-compose.buildkite.yml"
+    export BUILDKITE_PLUGIN_DOCKER_COMPOSE_CONFIG="loltest"
   fi
 }
 
