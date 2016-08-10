@@ -50,13 +50,13 @@ try_image_restore_from_docker_repository() {
   if [[ ! -z "$tag" ]]; then
     echo "~~~ :docker: Pulling docker image $tag"
 
-    buildkite-run "docker pull \"$tag\""
+    buildkite-run docker pull \"$tag\"
 
     echo "~~~ :docker: Creating a modified Docker Compose config"
 
     # TODO: Fix this el-dodgo method
     local escaped_tag_for_sed=$(echo "$tag" | sed -e 's/[\/&]/\\&/g')
-    buildkite-run "printf \"version: '2'\nservices:\n  $COMPOSE_SERVICE_NAME:\n    image: $tag\" > docker-compose.buildkite.yml"
+    buildkite-run printf \"version: '2'\nservices:\n  $COMPOSE_SERVICE_NAME:\n    image: $tag\" > docker-compose.buildkite.yml
     export BUILDKITE_PLUGIN_DOCKER_COMPOSE_CONFIG="lol"
   fi
 }
@@ -69,4 +69,4 @@ echo "+++ :docker: Running command in Docker Compose service: $COMPOSE_SERVICE_N
 #   docker-compose run "app" "go test"
 # does not work whereas the follow down:
 #   docker-compose run "app" go test
-run_docker_compose "run \"$COMPOSE_SERVICE_NAME\" $BUILDKITE_COMMAND"
+run_docker_compose run \"$COMPOSE_SERVICE_NAME\" $BUILDKITE_COMMAND
