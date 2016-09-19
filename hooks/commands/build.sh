@@ -44,6 +44,7 @@ echo "+++ :docker: Fetching cached docker images"
 
 # see if we are missing any of the images locally, and load them if we are
 (
+  BUILDKITE_IMAGE_CACHE_BUCKET="clara-docker-cache"
   name="${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}"
   images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
   if aws s3 ls $images_file && ! docker inspect $(aws s3 cp $images_file -) > /dev/null ; then
