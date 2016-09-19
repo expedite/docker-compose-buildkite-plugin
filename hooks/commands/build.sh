@@ -46,9 +46,17 @@ echo "+++ :docker: Fetching cached docker images"
 (
   BUILDKITE_IMAGE_CACHE_BUCKET="clara-docker-cache"
   name="${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}_${COMPOSE_SERVICE_NAME}"
+  backup_name="${BUILDKITE_PIPELINE_SLUG}_master_${COMPOSE_SERVICE_NAME}"
   images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
+  backup_images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.images
   if aws s3 ls $images_file && ! docker inspect $(aws s3 cp $images_file -) > /dev/null ; then
+      echo "Using cache"
       aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.tar.gz - | gunzip -c | docker load
+  elif aws s3 ls $backup_images_file && ! docker inspect $(aws s3 cp $backup_images_file -) > /dev/null ; then
+    echo "Using backup cache (master)"
+    aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.tar.gz - | gunzip -c | docker load
+  else
+    echo "No cache found"
   fi
 )
 
