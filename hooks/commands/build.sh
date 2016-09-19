@@ -21,7 +21,8 @@ push_image_to_docker_repository() {
   plugin_prompt_and_must_run docker push "$tag"
   plugin_prompt_and_must_run docker rmi "$tag"
   echo "+++ :docker: Saving image $COMPOSE_SERVICE_DOCKER_IMAGE_NAME"
-  plugin_prompt_and_must_run docker save "$COMPOSE_SERVICE_DOCKER_IMAGE_NAME" $(docker history -q "$COMPOSE_SERVICE_DOCKER_IMAGE_NAME") > image.tar
+  local docker_history=$(docker history -q "$COMPOSE_SERVICE_DOCKER_IMAGE_NAME")
+  plugin_prompt_and_must_run docker save "$COMPOSE_SERVICE_DOCKER_IMAGE_NAME" "$docker_history" > image.tar
 
   plugin_prompt_and_must_run buildkite-agent meta-data set "$(build_meta_data_image_tag_key "$COMPOSE_SERVICE_NAME")" "$tag"
 }
