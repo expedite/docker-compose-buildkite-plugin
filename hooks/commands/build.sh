@@ -32,8 +32,8 @@ push_image_to_docker_repository() {
 
       docker save $images | gzip -c > $slug
 
-      aws s3 cp $slug s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$BUILDKITE_PIPELINE_SLUG.tar.gz
-      echo "$images" | aws s3 cp - s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$BUILDKITE_PIPELINE_SLUG.images
+      aws s3 cp $slug s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}.tar.gz
+      echo "$images" | aws s3 cp - s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${BUILDKITE_PIPELINE_SLUG}__${BUILDKITE_BRANCH}.images
   fi
 
   plugin_prompt_and_must_run buildkite-agent meta-data set "$(build_meta_data_image_tag_key "$COMPOSE_SERVICE_NAME")" "$tag"
