@@ -50,7 +50,7 @@ echo "+++ :docker: Fetching cached docker images"
   images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
   backup_images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.images
   has_images=$(docker inspect $(aws s3 cp $images_file -) > /dev/null; echo $?)
-  has_backup_images=$(docker inspect $(aws s3 cp $backup_images_file -) 2>&1 > /dev/null; echo $?)
+  has_backup_images=$(docker inspect $(aws s3 cp $backup_images_file -) > /dev/null; echo $?)
   if aws s3 ls $images_file && [[ $has_images -eq 1 ]]; then
       echo "Downloading cache"
       aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.tar.gz - | gunzip -c | docker load
