@@ -21,9 +21,10 @@ push_image_to_docker_repository() {
   plugin_prompt_and_must_run docker push "$tag"
   plugin_prompt_and_must_run docker rmi "$tag"
   echo "+++ :docker: Saving image $COMPOSE_SERVICE_DOCKER_IMAGE_NAME"
-  local slug=/tmp/docker-cache/$BUILDKITE_PIPELINE_SLUG.tar.gz
+  local name="${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}"
+  local slug=/tmp/docker-cache/$name.tar.gz
   local BUILDKITE_IMAGE_CACHE_BUCKET="clara-docker-cache"
-  local images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$BUILDKITE_PIPELINE_SLUG.images
+  local images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
   local images=$(echo $(docker images -a | grep $(echo $BUILDKITE_JOB_ID | sed 's/-//g') | awk '{print $1}' | xargs -n 1 docker history -q | grep -v '<missing>'))
 
   if [[ -n $images ]] && ( ! aws s3 ls $images_file || [[ "$images" != $(aws s3 cp $images_file -) ]]) ; then
@@ -32,8 +33,8 @@ push_image_to_docker_repository() {
 
       docker save $images | gzip -c > $slug
 
-      aws s3 cp $slug s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}.tar.gz
-      echo "$images" | aws s3 cp - s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${BUILDKITE_PIPELINE_SLUG}__${BUILDKITE_BRANCH}.images
+      aws s3 cp $slug s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.tar.gz
+      echo "$images" | aws s3 cp - s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
   fi
 
   plugin_prompt_and_must_run buildkite-agent meta-data set "$(build_meta_data_image_tag_key "$COMPOSE_SERVICE_NAME")" "$tag"
