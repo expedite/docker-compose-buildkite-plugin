@@ -49,11 +49,13 @@ echo "+++ :docker: Fetching cached docker images"
   backup_name="${BUILDKITE_PIPELINE_SLUG}_master_${COMPOSE_SERVICE_NAME}"
   images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
   backup_images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.images
-  if aws s3 ls $images_file; then
-      echo "Using cache"
+  has_images=$(docker inspect $(aws s3 cp $images_file -) > /dev/null; echo $?)
+  has_backup_images=$(docker inspect $(aws s3 cp $backup_images_file -) > /dev/null; echo $?)
+  if aws s3 ls $images_file && [[ $has_images -eq 1 ]]; then
+      echo "Downloading cache"
       aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.tar.gz - | gunzip -c | docker load
-  elif aws s3 ls $backup_images_file; then
-    echo "Using backup cache (master)"
+  elif aws s3 ls $backup_images_file &&  [[ $has_backup_images -eq 1 ]]; then
+    echo "Downloading backup cache (master)"
     aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.tar.gz - | gunzip -c | docker load
   else
     echo "No cache found"
