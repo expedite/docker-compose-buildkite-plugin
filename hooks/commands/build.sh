@@ -21,6 +21,7 @@ push_image_to_docker_repository() {
   plugin_prompt_and_must_run docker push "$tag"
   plugin_prompt_and_must_run docker rmi "$tag"
   echo "+++ :docker: Saving image $COMPOSE_SERVICE_DOCKER_IMAGE_NAME"
+  local slug=/tmp/docker-cache/$BUILDKITE_PIPELINE_SLUG.tar.gz
   local BUILDKITE_IMAGE_CACHE_BUCKET="clara-docker-cache"
   local images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$BUILDKITE_PIPELINE_SLUG.images
   local images=$(echo $(docker images -a | grep $(echo $BUILDKITE_JOB_ID | sed 's/-//g') | awk '{print $1}' | xargs -n 1 docker history -q | grep -v '<missing>'))
