@@ -20,7 +20,7 @@ push_image_to_docker_repository() {
   plugin_prompt_and_must_run docker tag "$COMPOSE_SERVICE_DOCKER_IMAGE_NAME" "$tag"
   plugin_prompt_and_must_run docker push "$tag"
   plugin_prompt_and_must_run docker rmi "$tag"
-  if [[ $BUILDKITE_BRANCH == "master" ]]; then
+  if [[ $BUILDKITE_BRANCH == "master" ]] || [[ $BUILDKITE_MESSAGE == *"[CACHE]"* ]]; then
     echo "+++ :docker: Saving image $COMPOSE_SERVICE_DOCKER_IMAGE_NAME"
     local name="${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}_${COMPOSE_SERVICE_NAME}"
     local slug=/tmp/docker-cache/$name.tar.gz
