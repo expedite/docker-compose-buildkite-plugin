@@ -20,9 +20,49 @@ push_image_to_docker_repository() {
   plugin_prompt_and_must_run docker tag "$COMPOSE_SERVICE_DOCKER_IMAGE_NAME" "$tag"
   plugin_prompt_and_must_run docker push "$tag"
   plugin_prompt_and_must_run docker rmi "$tag"
+  if ([[ $BUILDKITE_BRANCH == "master" ]] || [[ $BUILDKITE_MESSAGE == *"[CACHE]"* ]]) && [ -z ${BUILDKITE_SKIP_CACHE:-""} ]; then
+    echo "+++ :docker: Saving image $COMPOSE_SERVICE_DOCKER_IMAGE_NAME"
+    local name="${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}_${COMPOSE_SERVICE_NAME}"
+    local slug=/tmp/docker-cache/$name.tar.gz
+    local BUILDKITE_IMAGE_CACHE_BUCKET="clara-docker-cache"
+    local images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
+    local images=$(echo $(docker images -a | grep $(echo $BUILDKITE_JOB_ID | sed 's/-//g') | awk '{print $1}' | xargs -n 1 docker history -q | grep -v '<missing>'))
+
+    if [[ -n $images ]] && ( ! aws s3 ls $images_file || [[ "$images" != $(aws s3 cp $images_file -) ]]) ; then
+        rm -rf /tmp/docker-cache
+        mkdir -p /tmp/docker-cache
+
+        docker save $images | gzip -c > $slug
+
+        aws s3 cp $slug s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.tar.gz
+        echo "$images" | aws s3 cp - s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
+    fi
+  fi
 
   plugin_prompt_and_must_run buildkite-agent meta-data set "$(build_meta_data_image_tag_key "$COMPOSE_SERVICE_NAME")" "$tag"
 }
+
+echo "+++ :docker: Fetching cached docker images"
+
+# see if we are missing any of the images locally, and load them if we are
+(
+  BUILDKITE_IMAGE_CACHE_BUCKET="clara-docker-cache"
+  name="${BUILDKITE_PIPELINE_SLUG}_${BUILDKITE_BRANCH}_${COMPOSE_SERVICE_NAME}"
+  backup_name="${BUILDKITE_PIPELINE_SLUG}_master_${COMPOSE_SERVICE_NAME}"
+  images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.images
+  backup_images_file=s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.images
+  has_images=$(docker inspect $(aws s3 cp $images_file -) > /dev/null; echo $?)
+  has_backup_images=$(docker inspect $(aws s3 cp $backup_images_file -) > /dev/null; echo $?)
+  if aws s3 ls $images_file && [[ $has_images -eq 1 ]]; then
+      echo "Downloading cache"
+      aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/$name.tar.gz - | gunzip -c | docker load
+  elif aws s3 ls $backup_images_file &&  [[ $has_backup_images -eq 1 ]]; then
+    echo "Downloading backup cache (master)"
+    aws s3 cp s3://$BUILDKITE_IMAGE_CACHE_BUCKET/${backup_name}.tar.gz - | gunzip -c | docker load
+  else
+    echo "No cache found"
+  fi
+)
 
 echo "+++ :docker: Building Docker Compose images for service $COMPOSE_SERVICE_NAME"
 
