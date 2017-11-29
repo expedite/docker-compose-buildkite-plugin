@@ -3,6 +3,11 @@ set -ueo pipefail
 
 DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd)"
 
+echo "--- Starting ssh agent"
+eval $(ssh-agent -s)
+ssh-add ~/.ssh/id_rsa
+
+
 . "$DIR/../lib/shared.bash"
 . "$DIR/../lib/metadata.bash"
 
